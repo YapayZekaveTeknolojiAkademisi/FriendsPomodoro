@@ -882,7 +882,7 @@ body {
   /* Controls bar - positioned LEFT of stats, vertically centered */
   .controls-bar {
     bottom: 2.5rem;
-    left: 2.5rem;
+    left: 2rem;
     right: auto;
     transform: none;
     gap: 0.5rem;
