@@ -1,7 +1,8 @@
 // Socket.io client configuration
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
+// In production, connect to same origin. In development, use localhost
+const SOCKET_URL = import.meta.env.PROD ? '' : 'http://localhost:3001';
 
 let socket = null;
 
