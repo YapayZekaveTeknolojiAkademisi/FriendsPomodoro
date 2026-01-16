@@ -420,6 +420,50 @@ const Room = () => {
 			{/* Mode Toggle - FIXED at bottom, only when idle */}
 			{!timerActive && roomState.state === 'idle' && (
 				<div className="mode-toggle-wrapper">
+					{/* Custom times - ABOVE the toggle */}
+					{((showBreakMode && customBreakTimes.length > 0) || (!showBreakMode && customWorkTimes.length > 0)) && (
+						<div style={{
+							display: 'flex',
+							flexWrap: 'wrap',
+							gap: '0.375rem',
+							justifyContent: 'center',
+							maxWidth: '300px',
+							marginBottom: '0.5rem'
+						}}>
+							{(showBreakMode ? customBreakTimes : customWorkTimes).map((minutes) => (
+								<div
+									key={minutes}
+									style={{
+										display: 'flex',
+										alignItems: 'center',
+										gap: '0.25rem',
+										background: 'rgba(245, 166, 35, 0.2)',
+										padding: '0.25rem 0.5rem',
+										borderRadius: '12px',
+										fontSize: '0.75rem'
+									}}
+								>
+									<span>{minutes} dk</span>
+									<button
+										onClick={() => handleRemoveCustomTime(minutes)}
+										style={{
+											background: 'none',
+											border: 'none',
+											cursor: 'pointer',
+											fontSize: '1rem',
+											lineHeight: 1,
+											padding: 0,
+											color: '#666'
+										}}
+									>
+										×
+									</button>
+								</div>
+							))}
+						</div>
+					)}
+
+					{/* Mode toggle buttons */}
 					<div className="mode-toggle">
 						<div className={`mode-toggle-slider ${showBreakMode ? 'mode-toggle-slider--break' : ''}`} />
 						<button
@@ -435,48 +479,6 @@ const Room = () => {
 							Mola
 						</button>
 					</div>
-
-					{/* Show custom times */}
-					{((showBreakMode && customBreakTimes.length > 0) || (!showBreakMode && customWorkTimes.length > 0)) && (
-						<div style={{
-							display: 'flex',
-							flexWrap: 'wrap',
-							gap: '0.5rem',
-							justifyContent: 'center',
-							maxWidth: '400px'
-						}}>
-							{(showBreakMode ? customBreakTimes : customWorkTimes).map((minutes) => (
-								<div
-									key={minutes}
-									style={{
-										display: 'flex',
-										alignItems: 'center',
-										gap: '0.5rem',
-										background: 'rgba(245, 166, 35, 0.2)',
-										padding: '0.5rem 1rem',
-										borderRadius: '20px',
-										fontSize: '0.85rem'
-									}}
-								>
-									<span>{minutes} dk</span>
-									<button
-										onClick={() => handleRemoveCustomTime(minutes)}
-										style={{
-											background: 'none',
-											border: 'none',
-											cursor: 'pointer',
-											fontSize: '1.2rem',
-											lineHeight: 1,
-											padding: 0,
-											color: '#666'
-										}}
-									>
-										×
-									</button>
-								</div>
-							))}
-						</div>
-					)}
 				</div>
 			)}
 
