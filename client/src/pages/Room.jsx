@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useRoom } from '../hooks/useRoom';
 import PhysicsWorld from '../components/PhysicsWorld';
 import UserListPanel from '../components/UserListPanel';
 import { getUserName } from '../utils/cookies';
+import { playSoundStop, playSoundReset, playSoundPause, playSoundComplete, preloadSounds } from '../utils/sounds';
 
 // Modern Settings Icon SVG Component
 const SettingsIcon = () => (
@@ -372,14 +373,14 @@ const Room = () => {
 							Devam
 						</button>
 					) : (
-						<button className="control-btn" onClick={actions.pause}>
+						<button className="control-btn" onClick={() => { playSoundPause(); actions.pause(); }}>
 							Durdur
 						</button>
 					)}
-					<button className="control-btn" onClick={actions.reset}>
+					<button className="control-btn" onClick={() => { playSoundReset(); actions.reset(); }}>
 						Sıfırla
 					</button>
-					<button className="control-btn" onClick={isBreak ? actions.goToIdle : actions.stop}>
+					<button className="control-btn" onClick={() => { playSoundStop(); isBreak ? actions.goToIdle() : actions.stop(); }}>
 						Bitir
 					</button>
 				</div>
