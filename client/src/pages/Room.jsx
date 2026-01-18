@@ -56,8 +56,9 @@ const Room = () => {
 
 	const isBreak = useMemo(() => {
 		if (!roomState) return false;
-		return ['break', 'break-paused'].includes(roomState.state);
-	}, [roomState?.state]);
+		// Check timerType for accurate break detection (works even when paused)
+		return roomState.timerType === 'break';
+	}, [roomState?.timerType]);
 
 	// Track previous state to detect timer completion
 	const prevStateRef = useRef(null);
