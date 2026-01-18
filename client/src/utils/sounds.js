@@ -2,25 +2,13 @@
 
 // Sound file paths
 const SOUNDS = {
-	stop: '/sounds/notification-error-427345.mp3',      // Bitir
-	reset: '/sounds/new-notification-014-363678.mp3',   // Sıfırla
-	pause: '/sounds/new-notification-09-352705.mp3',    // Durdur
-	complete: '/sounds/bell-notification-337658.mp3'    // Sayaç bitti
+	stop: '/sounds/notification-pluck-off-269290.mp3',      // Bitir butonu
+	reset: '/sounds/new-notification-014-363678.mp3',       // Sıfırla
+	pause: '/sounds/new-notification-09-352705.mp3',        // Durdur
+	complete: '/sounds/mixkit-correct-answer-tone-2870.wav' // Sayaç otomatik bitti
 };
 
-// Cache for audio objects
-const audioCache = {};
-
-// Preload sounds for faster playback
-export const preloadSounds = () => {
-	Object.entries(SOUNDS).forEach(([key, path]) => {
-		const audio = new Audio(path);
-		audio.preload = 'auto';
-		audioCache[key] = audio;
-	});
-};
-
-// Play a specific sound
+// Play a specific sound (only once)
 export const playSound = (soundName) => {
 	try {
 		const path = SOUNDS[soundName];
@@ -29,7 +17,6 @@ export const playSound = (soundName) => {
 			return;
 		}
 
-		// Create new audio instance each time to allow overlapping sounds
 		const audio = new Audio(path);
 		audio.volume = 0.7;
 		audio.play().catch(err => {
@@ -51,6 +38,5 @@ export default {
 	playSoundStop,
 	playSoundReset,
 	playSoundPause,
-	playSoundComplete,
-	preloadSounds
+	playSoundComplete
 };
