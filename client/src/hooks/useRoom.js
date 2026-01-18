@@ -51,8 +51,10 @@ export const useRoom = (roomId) => {
 		});
 
 		socket.on('timer-complete', () => {
-			// Timer completed - state is already updated via room-state
-			// Sound is played by the "Bitir" button instead
+			// Timer completed automatically - play completion sound ONCE
+			const audio = new Audio('/sounds/mixkit-correct-answer-tone-2870.wav');
+			audio.volume = 0.7;
+			audio.play().catch(err => console.warn('Could not play sound:', err));
 		});
 
 		// If already connected, join room
