@@ -533,17 +533,49 @@ export const PhysicsWorld = ({
 
 		setIsReady(true);
 
-		// Handle window resize
-		const handleResize = () => {
-			const newWidth = container.clientWidth;
-			const newHeight = container.clientHeight;
+		// Track current pixel ratio for change detection
+		let currentPixelRatio = Math.min(window.devicePixelRatio, 2);
 
+		// Comprehensive resize handler that fixes monitor switching issues
+		const handleResize = () => {
+			if (!container || !render || !render.canvas || !engine) return;
+
+			const newWidth = container.clientWidth || window.innerWidth;
+			const newHeight = container.clientHeight || window.innerHeight;
+			const newPixelRatio = Math.min(window.devicePixelRatio, 2);
+
+			// Skip if dimensions haven't actually changed
+			if (render.options.width === newWidth &&
+				render.options.height === newHeight &&
+				currentPixelRatio === newPixelRatio) {
+				return;
+			}
+
+			// Check if pixel ratio changed (monitor switch)
+			const pixelRatioChanged = newPixelRatio !== currentPixelRatio;
+			currentPixelRatio = newPixelRatio;
+
+			// Update render options
 			render.options.width = newWidth;
 			render.options.height = newHeight;
-			render.canvas.width = newWidth * Math.min(window.devicePixelRatio, 2);
-			render.canvas.height = newHeight * Math.min(window.devicePixelRatio, 2);
+			render.options.pixelRatio = newPixelRatio;
+
+			// Update canvas dimensions
+			render.canvas.width = newWidth * newPixelRatio;
+			render.canvas.height = newHeight * newPixelRatio;
 			render.canvas.style.width = `${newWidth}px`;
 			render.canvas.style.height = `${newHeight}px`;
+
+			// Update the render bounds to match new dimensions
+			render.bounds = {
+				min: { x: 0, y: 0 },
+				max: { x: newWidth, y: newHeight }
+			};
+
+			// Reset context transformation for proper scaling
+			const context = render.context;
+			context.setTransform(1, 0, 0, 1, 0, 0);
+			context.scale(newPixelRatio, newPixelRatio);
 
 			// Update wall positions
 			Body.setPosition(walls[0], { x: newWidth / 2, y: -30 });
@@ -551,15 +583,85 @@ export const PhysicsWorld = ({
 			Body.setPosition(walls[2], { x: -30, y: newHeight / 2 });
 			Body.setPosition(walls[3], { x: newWidth + 30, y: newHeight / 2 });
 
-			// Update focus zone
+			// Update focus zone position
 			Body.setPosition(focusZone, { x: newWidth / 2, y: newHeight / 2 });
+
+			// Update net bodies positions relative to new hoop position
+			const newHoopX = newWidth / 2;
+			const newHoopY = newHeight / 2;
+			netBodiesRef.current.forEach((netBody, i) => {
+				const angle = (i / netBodiesRef.current.length) * 2 * Math.PI;
+				const startX = newHoopX + Math.cos(angle) * (focusZoneRadius - 5);
+				const startY = newHoopY + Math.sin(angle) * (focusZoneRadius * 0.3);
+				const netLength = 40;
+				Body.setPosition(netBody, { x: startX, y: startY + netLength });
+			});
+
+			// Update mouse element and scale
+			if (mouse) {
+				mouse.pixelRatio = newPixelRatio;
+				// Recalculate mouse element bounds - crucial for click detection
+				mouse.element = render.canvas;
+				mouse.offset = { x: 0, y: 0 };
+				mouse.scale = { x: 1, y: 1 };
+			}
+
+			// Keep time balls within new bounds
+			Composite.allBodies(engine.world).forEach(body => {
+				if (!body.isStatic && body.isTimeBall) {
+					const radius = body.radius || 30;
+					const x = Math.max(radius, Math.min(newWidth - radius, body.position.x));
+					const y = Math.max(radius, Math.min(newHeight - radius, body.position.y));
+					Body.setPosition(body, { x, y });
+				}
+			});
 		};
 
-		window.addEventListener('resize', handleResize);
+		// Debounced resize handler for performance
+		let resizeTimeout = null;
+		const debouncedResize = () => {
+			if (resizeTimeout) {
+				cancelAnimationFrame(resizeTimeout);
+			}
+			resizeTimeout = requestAnimationFrame(handleResize);
+		};
+
+		// Use ResizeObserver for more reliable resize detection
+		const resizeObserver = new ResizeObserver(debouncedResize);
+		resizeObserver.observe(container);
+
+		// Also listen for window resize as fallback
+		window.addEventListener('resize', debouncedResize);
+
+		// Listen for devicePixelRatio changes (monitor switching)
+		const mediaQuery = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+		const handlePixelRatioChange = () => {
+			handleResize();
+		};
+		mediaQuery.addEventListener('change', handlePixelRatioChange);
+
+		// Handle visibility change (tab switching can affect rendering)
+		const handleVisibilityChange = () => {
+			if (!document.hidden) {
+				// Small delay to let browser settle
+				setTimeout(handleResize, 100);
+			}
+		};
+		document.addEventListener('visibilitychange', handleVisibilityChange);
 
 		// Cleanup - only on unmount
 		return () => {
-			window.removeEventListener('resize', handleResize);
+			// Remove all resize listeners
+			resizeObserver.disconnect();
+			window.removeEventListener('resize', debouncedResize);
+			mediaQuery.removeEventListener('change', handlePixelRatioChange);
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+			// Cancel any pending resize
+			if (resizeTimeout) {
+				cancelAnimationFrame(resizeTimeout);
+			}
+
 			Events.off(engine);
 			Events.off(render);
 			Events.off(mouseConstraint);

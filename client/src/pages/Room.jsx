@@ -42,6 +42,54 @@ const Room = () => {
 	const [customBreakTimes, setCustomBreakTimes] = useState([]);
 	const [customTimeInput, setCustomTimeInput] = useState('');
 	const [ballColor, setBallColor] = useState('orange'); // 'orange', 'blue', 'pink'
+	const [physicsKey, setPhysicsKey] = useState(0); // Key to force PhysicsWorld remount on resize
+
+	// Handle window resize by remounting PhysicsWorld
+	useEffect(() => {
+		let resizeTimeout = null;
+		let lastWidth = window.innerWidth;
+		let lastHeight = window.innerHeight;
+
+		const handleResize = () => {
+			// Debounce - only remount after resize stops
+			if (resizeTimeout) {
+				clearTimeout(resizeTimeout);
+			}
+
+			resizeTimeout = setTimeout(() => {
+				const newWidth = window.innerWidth;
+				const newHeight = window.innerHeight;
+
+				// Only remount if dimensions actually changed significantly
+				const widthChanged = Math.abs(newWidth - lastWidth) > 50;
+				const heightChanged = Math.abs(newHeight - lastHeight) > 50;
+
+				if (widthChanged || heightChanged) {
+					lastWidth = newWidth;
+					lastHeight = newHeight;
+					// Force PhysicsWorld remount by changing key
+					setPhysicsKey(prev => prev + 1);
+				}
+			}, 300); // Wait for resize to finish
+		};
+
+		window.addEventListener('resize', handleResize);
+
+		// Also handle devicePixelRatio changes (monitor switching)
+		const mediaQuery = window.matchMedia(`(resolution: ${window.devicePixelRatio}dppx)`);
+		const handleDpiChange = () => {
+			setPhysicsKey(prev => prev + 1);
+		};
+		mediaQuery.addEventListener('change', handleDpiChange);
+
+		return () => {
+			window.removeEventListener('resize', handleResize);
+			mediaQuery.removeEventListener('change', handleDpiChange);
+			if (resizeTimeout) {
+				clearTimeout(resizeTimeout);
+			}
+		};
+	}, []);
 
 	// Determine timer state
 	const timerActive = useMemo(() => {
@@ -340,6 +388,7 @@ const Room = () => {
 			{/* Physics World (when not in active timer) */}
 			{!timerActive && (
 				<PhysicsWorld
+					key={physicsKey}
 					type={showBreakMode ? 'break' : 'work'}
 					onSelect={handleTimeSelect}
 					users={roomState.users}

@@ -33,10 +33,19 @@ export const playSoundReset = () => playSound('reset');
 export const playSoundPause = () => playSound('pause');
 export const playSoundComplete = () => playSound('complete');
 
+// Preload all sounds for faster playback
+export const preloadSounds = () => {
+	Object.values(SOUNDS).forEach(path => {
+		const audio = new Audio(path);
+		audio.preload = 'auto';
+	});
+};
+
 export default {
 	playSound,
 	playSoundStop,
 	playSoundReset,
 	playSoundPause,
-	playSoundComplete
+	playSoundComplete,
+	preloadSounds
 };

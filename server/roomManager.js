@@ -219,27 +219,39 @@ class RoomManager {
 
 		if (!isActive) return room;
 
-		// Calculate elapsed time since last tick
-		const elapsed = Math.floor((now - room.lastTickAt) / 1000);
+		// Calculate elapsed time since last tick with protection against drift
+		const elapsedMs = now - room.lastTickAt;
+
+		// Protect against large jumps (e.g., system sleep, tab backgrounded)
+		// Maximum elapsed time per tick is 5 seconds to prevent huge jumps
+		const maxElapsedMs = 5000;
+		const safeElapsedMs = Math.min(elapsedMs, maxElapsedMs);
+		const elapsed = Math.floor(safeElapsedMs / 1000);
 
 		if (elapsed >= 1) {
-			room.timerRemaining = Math.max(0, room.timerRemaining - elapsed);
+			// Use exactly 1 second per tick for consistent timing
+			// This prevents accumulation errors from timing drift
+			const tickAmount = 1;
+
+			room.timerRemaining = Math.max(0, room.timerRemaining - tickAmount);
+			// Reset lastTickAt to now, not adding elapsed - this prevents drift
 			room.lastTickAt = now;
 
-			// Update user stats
+			// Update user stats - always add exactly 1 second per tick
 			room.users.forEach(user => {
 				if (room.timerType === 'work') {
-					user.workTime += elapsed;
+					user.workTime += tickAmount;
 				} else if (room.timerType === 'break') {
-					user.breakTime += elapsed;
+					user.breakTime += tickAmount;
 				}
 			});
 
 			// Check if timer completed
 			if (room.timerRemaining <= 0) {
 				if (room.timerType === 'work') {
-					// Save the completed work session
+					// Save the completed work session with actual duration
 					if (room.currentSessionStart) {
+						// Calculate actual worked time based on original duration
 						room.workSessions.push({
 							startedAt: room.currentSessionStart,
 							duration: room.timerDuration
@@ -267,7 +279,12 @@ class RoomManager {
 		// Calculate room stats
 		const totalWorkTime = users.reduce((sum, u) => sum + u.workTime, 0);
 		const totalBreakTime = users.reduce((sum, u) => sum + u.breakTime, 0);
-		const avgWorkTime = users.length > 0 ? Math.floor(totalWorkTime / users.length) : 0;
+
+		// Calculate average only for users who have actually worked (workTime > 0)
+		const usersWithWork = users.filter(u => u.workTime > 0);
+		const avgWorkTime = usersWithWork.length > 0
+			? Math.floor(totalWorkTime / usersWithWork.length)
+			: 0;
 
 		return {
 			roomId: room.roomId,
